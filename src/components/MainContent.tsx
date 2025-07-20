@@ -17,11 +17,18 @@ const MainContent: React.FC<MainContentProps> = ({ isVisible }) => {
   useEffect(() => {
     if (isVisible && contentRef.current) {
       const elements = contentRef.current.querySelectorAll('.animate-on-scroll');
+      
+      // Use requestAnimationFrame for better performance
+      let timeoutId: NodeJS.Timeout;
       elements.forEach((el, index) => {
-        setTimeout(() => {
-          el.classList.add('animate-slide-up');
-        }, index * 200);
+        timeoutId = setTimeout(() => {
+          requestAnimationFrame(() => {
+            el.classList.add('animate-slide-up');
+          });
+        }, index * 150); // Reduced delay for faster loading
       });
+      
+      return () => clearTimeout(timeoutId);
     }
   }, [isVisible]);
 
@@ -97,12 +104,14 @@ const MainContent: React.FC<MainContentProps> = ({ isVisible }) => {
               <div className="grid md:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="group cursor-pointer" onClick={() => openMemory(i)}>
-                    <div className="relative rounded-2xl overflow-hidden h-64 transition-all duration-500 group-hover:scale-105 group-hover:shadow-xl">
-                      {/* Cover Image */}
+                    <div className="relative rounded-2xl overflow-hidden h-64 transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl">
+                      {/* Cover Image with lazy loading */}
                       <img
                         src={memories[i - 1].photos[0]}
                         alt={`Memory ${i} cover`}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        loading="lazy"
+                        decoding="async"
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                       />
 
                       {/* Pink Filter */}

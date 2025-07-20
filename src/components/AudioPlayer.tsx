@@ -4,6 +4,8 @@ import { Play, Pause } from 'lucide-react';
 const AudioPlayer: React.FC = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
@@ -14,8 +16,15 @@ const AudioPlayer: React.FC = () => {
     audio.volume = 1.0;
 
     // Handle audio events
+    const handleLoadStart = () => {
+      setIsLoading(true);
+      setHasError(false);
+    };
+
     const handleCanPlay = () => {
       setIsLoaded(true);
+      setIsLoading(false);
+      setHasError(false);
     };
 
     const handlePlay = () => {
@@ -30,19 +39,34 @@ const AudioPlayer: React.FC = () => {
       setIsPlaying(false);
     };
 
-    const handleError = () => {
-      console.log('Audio loading error');
+    const handleError = (e: Event) => {
+      console.error('Audio loading error:', e);
       setIsLoaded(false);
+      setIsLoading(false);
+      setHasError(true);
     };
 
+    const handleLoadedData = () => {
+      setIsLoaded(true);
+      setIsLoading(false);
+    };
+
+    // Add event listeners
+    audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('loadeddata', handleLoadedData);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
+    // Start loading
+    audio.load();
+
     return () => {
+      audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('loadeddata', handleLoadedData);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('ended', handleEnded);
@@ -50,79 +74,72 @@ const AudioPlayer: React.FC = () => {
     };
   }, []);
 
+  // Otomatik müzik başlatma - sadece yüklendikten sonra
   useEffect(() => {
+    if (!isLoaded) return;
+
     const audio = audioRef.current;
-    if (!audio || !isLoaded) return;
-
-    if (isPlaying) {
-      audio.play().catch((error) => {
-        console.log('Play failed:', error);
-        setIsPlaying(false);
-      });
-    } else {
-      audio.pause();
-    }
-  }, [isPlaying, isLoaded]);
-
-
-
-  // Otomatik müzik başlatma - sayfa yüklendiğinde
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !isLoaded) return;
+    if (!audio) return;
 
     const startMusic = async () => {
       try {
         await audio.play();
         setIsPlaying(true);
-        console.log('Music started successfully');
       } catch (error) {
         console.log('Autoplay failed, waiting for user interaction');
+        // Autoplay failed, will wait for user interaction
       }
     };
 
-    startMusic();
+    // Küçük bir gecikme ile başlat
+    const timer = setTimeout(startMusic, 100);
+    return () => clearTimeout(timer);
   }, [isLoaded]);
 
-  // Kullanıcı etkileşimi ile müzik başlatma (tıklama, tuş basma, scroll)
+  // Kullanıcı etkileşimi ile müzik başlatma
   useEffect(() => {
+    if (!isLoaded || isPlaying) return;
+
     const handleUserInteraction = async () => {
       const audio = audioRef.current;
-      if (!audio || !isLoaded || !audio.paused) return;
+      if (!audio || !audio.paused) return;
 
       try {
         await audio.play();
         setIsPlaying(true);
-        console.log('Music started after user interaction');
-        
-        // Event listener'ları kaldır
-        removeAllListeners();
       } catch (error) {
-        console.log('Failed to start music after user interaction:', error);
+        console.error('Failed to start music on user interaction:', error);
       }
     };
 
-    const removeAllListeners = () => {
+    // Event listener'ları ekle
+    document.addEventListener('click', handleUserInteraction, { once: true, passive: true });
+    document.addEventListener('touchstart', handleUserInteraction, { once: true, passive: true });
+
+    return () => {
       document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('keydown', handleUserInteraction);
       document.removeEventListener('touchstart', handleUserInteraction);
-      document.removeEventListener('scroll', handleUserInteraction);
-      window.removeEventListener('scroll', handleUserInteraction);
     };
+  }, [isLoaded, isPlaying]);
 
-    // Tüm kullanıcı etkileşimi event listener'larını ekle
-    document.addEventListener('click', handleUserInteraction);
-    document.addEventListener('keydown', handleUserInteraction);
-    document.addEventListener('touchstart', handleUserInteraction);
-    document.addEventListener('scroll', handleUserInteraction);
-    window.addEventListener('scroll', handleUserInteraction);
+  const togglePlayPause = async () => {
+    if (!isLoaded || hasError) return;
+    
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    return removeAllListeners;
-  }, [isLoaded]);
-
-  const togglePlayPause = () => {
-    if (!isLoaded) return;
-    setIsPlaying(!isPlaying);
+    try {
+      if (isPlaying) {
+        audio.pause();
+        setIsPlaying(false);
+      } else {
+        await audio.play();
+        setIsPlaying(true);
+      }
+    } catch (error) {
+      console.error('Toggle play/pause failed:', error);
+      setIsPlaying(false);
+    }
   };
 
 
@@ -165,7 +182,7 @@ const AudioPlayer: React.FC = () => {
       />
 
       {/* Loading Indicator */}
-      {!isLoaded && (
+      {isLoading && !hasError && (
         <div className="absolute top-full right-0 mt-2 bg-white/90 backdrop-blur-lg border border-pink-200 rounded-lg px-3 py-2 shadow-lg">
           <div className="flex items-center gap-2">
             <div className="flex gap-1">
@@ -178,8 +195,18 @@ const AudioPlayer: React.FC = () => {
         </div>
       )}
 
+      {/* Error Indicator */}
+      {hasError && (
+        <div className="absolute top-full right-0 mt-2 bg-red-100 backdrop-blur-lg border border-red-200 rounded-lg px-3 py-2 shadow-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-red-400 rounded-full"></div>
+            <span className="text-xs text-red-700 font-medium">Müzik yüklenemedi</span>
+          </div>
+        </div>
+      )}
+
       {/* Music status indicator */}
-      {isLoaded && !isPlaying && (
+      {isLoaded && !isPlaying && !hasError && (
         <div className="absolute top-full right-0 mt-2 bg-gradient-to-r from-pink-100 to-rose-100 backdrop-blur-lg border border-pink-200 rounded-lg px-3 py-2 shadow-lg animate-pulse">
           <div className="flex items-center gap-2">
             <Play size={12} className="text-pink-600" />

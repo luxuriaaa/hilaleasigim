@@ -166,6 +166,61 @@ html {
   backface-visibility: hidden;
 }
 
+/* Mobile performance optimizations */
+@media (max-width: 768px) {
+  /* Reduce animations on mobile */
+  .animate-pulse {
+    animation-duration: 3s;
+  }
+  
+  .animate-bounce {
+    animation-duration: 2s;
+  }
+  
+  /* Simplify blur effects on mobile */
+  .blur-3xl {
+    filter: blur(8px);
+  }
+  
+  .blur-2xl {
+    filter: blur(6px);
+  }
+  
+  .blur-xl {
+    filter: blur(4px);
+  }
+  
+  /* Reduce backdrop blur on mobile */
+  .backdrop-blur-lg {
+    backdrop-filter: blur(8px);
+  }
+  
+  .backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* Hardware acceleration for better performance */
+.transform-gpu {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+/* Optimize floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) translateZ(0);
+  }
+  50% {
+    transform: translateY(-10px) translateZ(0);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+  will-change: transform;
+}
+
 /* Smooth scrolling improvements */
 * {
   scroll-behavior: smooth;

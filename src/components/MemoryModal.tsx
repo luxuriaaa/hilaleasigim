@@ -24,11 +24,13 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose, memoryNumber
   // Minimum swipe distance
   const minSwipeDistance = 50;
 
-  // Auto-play functionality with animation
+  // Auto-play functionality with animation - optimized
   useEffect(() => {
-    if (!isAutoPlay || !currentMemory.photos) return;
+    if (!isAutoPlay || !currentMemory.photos || currentMemory.photos.length <= 1) return;
 
     const interval = setInterval(() => {
+      if (document.hidden) return; // Don't animate when tab is hidden
+      
       setIsTransitioning(true);
       setTimeout(() => {
         setCurrentPhotoIndex((prev) =>
@@ -36,7 +38,7 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose, memoryNumber
         );
         setIsTransitioning(false);
       }, 150);
-    }, 5000);
+    }, 6000); // Increased interval for better performance
 
     return () => clearInterval(interval);
   }, [isAutoPlay, currentMemory.photos]);
@@ -107,36 +109,35 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose, memoryNumber
 
   return (
     <div className="fixed inset-0 z-50 bg-gradient-to-br from-rose-50 via-pink-50 to-purple-50 animate-scale-in overflow-hidden">
-      {/* Romantic background effects */}
+      {/* Simplified background effects - reduced for performance */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Floating hearts */}
-        {[...Array(12)].map((_, i) => (
+        {/* Reduced floating hearts for mobile performance */}
+        {[...Array(window.innerWidth < 768 ? 3 : 6)].map((_, i) => (
           <div
             key={i}
-            className="absolute animate-float opacity-20"
+            className="absolute opacity-15"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 5}s`,
-              animationDuration: `${3 + Math.random() * 4}s`
+              left: `${20 + (i * 15)}%`,
+              top: `${20 + (i * 10)}%`,
+              animation: `float ${4 + i}s ease-in-out infinite`,
+              animationDelay: `${i * 0.8}s`
             }}
           >
-            <Heart size={16 + Math.random() * 24} className="text-pink-400" />
+            <Heart size={20} className="text-pink-400" />
           </div>
         ))}
 
-        {/* Soft light orbs */}
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-pink-200/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-rose-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        {/* Simplified light orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-pink-200/20 rounded-full blur-2xl"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-purple-200/20 rounded-full blur-2xl"></div>
       </div>
 
-      {/* Close button - fixed position */}
+      {/* Close button - fixed position with highest z-index */}
       <button
         onClick={onClose}
-        className="fixed top-6 right-6 z-60 p-3 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 border border-pink-200"
+        className="fixed top-6 right-6 z-[9999] p-3 rounded-full bg-white/95 backdrop-blur-sm hover:bg-white transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-110 border border-pink-200 group"
       >
-        <X size={20} className="text-rose-600" />
+        <X size={20} className="text-rose-600 group-hover:text-rose-700" />
       </button>
 
       {/* Scrollable content */}
@@ -188,8 +189,10 @@ const MemoryModal: React.FC<MemoryModalProps> = ({ isOpen, onClose, memoryNumber
                     src={currentMemory.photos[currentPhotoIndex]}
                     alt={`${currentMemory.title} - Photo ${currentPhotoIndex + 1}`}
                     onLoad={handleImageLoad}
-                    className={`w-full h-full object-cover transition-all duration-500 ${isTransitioning
-                      ? 'opacity-0 scale-110 blur-sm'
+                    loading="lazy"
+                    decoding="async"
+                    className={`w-full h-full object-cover transition-all duration-300 ${isTransitioning
+                      ? 'opacity-0 scale-105 blur-sm'
                       : 'opacity-100 scale-100 blur-0'
                       }`}
                   />
