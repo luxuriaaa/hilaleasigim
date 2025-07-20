@@ -58,7 +58,7 @@ class SecurityManager {
     }
 
     const now = Date.now();
-    const correctHash = this.hashPassword('popeyes');
+    const correctHash = this.hashPassword('28.05.2024');
     const inputHash = this.hashPassword(password.toLowerCase().trim());
 
     if (inputHash === correctHash) {
